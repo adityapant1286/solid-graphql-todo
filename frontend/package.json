@@ -16,7 +16,9 @@
   },
   "dependencies": {
     "graphql": "^16.6.0",
+    "graphql-ws": "^5.11.2",
     "solid-js": "^1.5.1",
     "urql": "^3.0.3"
   }
+
 }
