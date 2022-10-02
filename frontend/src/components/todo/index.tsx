@@ -1,6 +1,5 @@
 import { Component } from "solid-js";
 import { TodoProps } from "../../model/todoProps";
-import { refetch } from "../../state";
 import { urqlClient } from "../../urqlWsClient";
 import styles from './Todo.module.css';
 
@@ -17,7 +16,6 @@ export const Todo: Component<TodoProps> = (props: TodoProps) => {
         `,
             { id }
         ).toPromise();
-        refetch();
     };
 
     return (

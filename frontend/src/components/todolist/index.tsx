@@ -4,6 +4,8 @@ import { Todo as TodoData } from '../../model/todo';
 import { todos } from "../../state";
 import styles from './TodoList.module.css';
 
+console.log("todo list");
+console.log(todos());
 
 export const TodoList: Component = () => {
 

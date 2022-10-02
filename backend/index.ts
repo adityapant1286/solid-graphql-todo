@@ -1,18 +1,24 @@
 import { createServer } from "graphql-yoga";
-import { ExecutionArgs, execute, subscribe } from "graphql";
-import { schema } from "./src/schema";
 import { WebSocketServer } from "ws";
 import { useServer } from "graphql-ws/lib/use/ws";
 
+import { schema, pubSub } from "./src/schema";
+import { execute, ExecutionArgs, subscribe } from "graphql";
+
 async function main() {
-    const gql_yoga_server = createServer({
+    const yogaApp = createServer({
         schema,
         graphiql: {
-            subscriptionsProtocol: "WS"
-        }
+            subscriptionsProtocol: 'WS', // use WebSockets instead of SSE
+        },
+        context: { pubSub }
     });
 
-    const httpServer = await gql_yoga_server.start();
+    const server = await yogaApp.start();
+    const wsServer = new WebSocketServer({
+        server,
+        path: yogaApp.getAddressInfo().endpoint
+    });
 
     type EnvelopedExecutionArgs = ExecutionArgs & {
         rootValue: {
@@ -21,13 +27,13 @@ async function main() {
         };
     };
 
-
     useServer(
         {
-            execute: (args) => (args as EnvelopedExecutionArgs).rootValue.execute(args),
-            subscribe: (args) => (args as EnvelopedExecutionArgs).rootValue.subscribe(args),
-            onSubscribe: async (ctx: any, msg: any) => {
-                const { schema, execute, subscribe, contextFactory, parse, validate } = gql_yoga_server.getEnveloped(ctx);
+            execute: (args: any) => (args as EnvelopedExecutionArgs).rootValue.execute(args),
+            subscribe: (args: any) => (args as EnvelopedExecutionArgs).rootValue.subscribe(args),
+            onSubscribe: async (ctx, msg) => {
+                const { schema, execute, subscribe, contextFactory, parse, validate } =
+                    yogaApp.getEnveloped(ctx);
 
                 const args: EnvelopedExecutionArgs = {
                     schema,
@@ -44,12 +50,9 @@ async function main() {
                 const errors = validate(args.schema, args.document);
                 if (errors.length) return errors;
                 return args;
-            }
+            },
         },
-        new WebSocketServer({
-            server: httpServer,
-            path: gql_yoga_server.getAddressInfo().endpoint
-        })
+        wsServer,
     );
 
 }

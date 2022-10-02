@@ -1,5 +1,4 @@
 import { Component, createSignal } from "solid-js";
-import { refetch } from "../../state";
 import { urqlClient } from "../../urqlWsClient";
 
 import styles from "./NewTodo.module.css";
@@ -8,8 +7,13 @@ import styles from "./NewTodo.module.css";
 export const NewTodo: Component = () => {
     const [title, setTitle] = createSignal('');
 
-    const handleAdd = async () => {
-        await urqlClient.mutation(`
+    const handleAdd = () => {
+        if (title().trim().length < 1) {
+            return;
+        }
+
+        const addTodo = async () => {
+            await urqlClient.mutation(`
             mutation($title: String!) {
                 addTodo(title: $title) {
                     id
@@ -17,13 +21,14 @@ export const NewTodo: Component = () => {
                 }
             }
         `,
-            {
-                title: title()
-            }
-        ).toPromise();
+                {
+                    title: title()
+                }
+            ).toPromise();
 
-        refetch();
-        setTitle('');
+            setTitle('');
+        }
+        addTodo();
     };
 
     return (
