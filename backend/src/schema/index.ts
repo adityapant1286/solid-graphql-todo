@@ -1,4 +1,4 @@
-import { createPubSub, PubSub } from 'graphql-yoga';
+import { createPubSub, map, pipe, Repeater } from 'graphql-yoga';
 import { Todo } from "./types";
 
 let todos = [
@@ -16,7 +16,6 @@ const TODOS_CHANNEL = "TODOS_CHANNEL";
 export const pubSub = createPubSub();
 
 const publishToChannel = (data: any) => pubSub.publish(TODOS_CHANNEL, data);
-
 
 // Type def
 const typeDefs = [`
@@ -54,8 +53,7 @@ const resolvers = {
                 completed: false
             };
             todos.push(newTodo);
-            pubSub.publish(TODOS_CHANNEL, { todos });
-            // publishToChannel({ todos });
+            publishToChannel({ todos });
             return newTodo;
         },
         toggleTodo: (_: unknown, { id }: Todo, { pubSub }: any) => {
@@ -64,26 +62,31 @@ const resolvers = {
                 throw new Error("Todo not found");
             }
             todo.completed = !todo.completed;
-            pubSub.publish(TODOS_CHANNEL, { todos });
-            // publishToChannel({ todos });
+            publishToChannel({ todos });
             return todo;
         },
         removeTodo: (_: unknown, { id }: Todo, { pubSub }: any) => {
             const todoIndex = todos.findIndex(todo => todo.id === id);
             const toBeDelete = todos[todoIndex];
             todos = [...todos.slice(0, todoIndex), ...todos.slice(todoIndex + 1)];
-            pubSub.publish(TODOS_CHANNEL, { todos });
-            // publishToChannel({ todos });
+            publishToChannel({ todos });
             return toBeDelete;
         }
     },
     Subscription: {
         todos: {
-            subscribe: () => {
-                const res = pubSub.subscribe(TODOS_CHANNEL);
-                publishToChannel({ todos });
-                return res;
-            }
+            // subscribe: () => {
+            //     const res = pubSub.subscribe(TODOS_CHANNEL);
+            //     publishToChannel({ todos });
+            //     return res;
+            // }
+            subscribe: () => pipe(
+                Repeater.merge([
+                    undefined,
+                    pubSub.subscribe(TODOS_CHANNEL)
+                ]),
+                map(() => todos)
+            ),
         },
     },
 };
